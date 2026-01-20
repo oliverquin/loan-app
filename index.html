@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Loan Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-3">
+
+  <h4 class="text-center mb-3">📒 Simple Loan Manager</h4>
+
+  <form id="loanForm" class="card p-3 shadow-sm">
+
+    <input id="customerName" class="form-control mb-2" placeholder="Customer Name" required>
+
+    <input id="loanAmount" class="form-control mb-2" type="number" placeholder="Loan Amount">
+
+    <input id="interestRate" class="form-control mb-2" type="number" placeholder="Interest Rate (%)">
+
+    <label class="small">Interest Paid Date</label>
+    <input id="interestPaidDate" class="form-control mb-2" type="date">
+
+    <input id="interestAmount" class="form-control mb-2" type="number" placeholder="Interest Amount">
+
+    <input id="principalPaid" class="form-control mb-2" type="number" placeholder="Principal Paid">
+
+    <label class="small">Principal Paid Date</label>
+    <input id="principalPaidDate" class="form-control mb-2" type="date">
+
+    <input id="balancePrincipal" class="form-control mb-3" type="number" placeholder="Balance Principal">
+
+    <button class="btn btn-primary w-100">Save Entry</button>
+
+  </form>
+
+  <hr>
+
+  <h6>📋 Loan Records</h6>
+  <ul id="list" class="list-group"></ul>
+
+</div>
+
+<script>
+
+const API_URL = "https://script.google.com/macros/s/AKfycbw1eFZeXbZ9taGlsT9LibWQWUBFQZLIud4xXVhJAUjHr2O7Pu9qk-07Ha0bMAKIOlKk/exec";
+
+document.getElementById("loanForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const data = {
+    customerName: customerName.value,
+    loanAmount: loanAmount.value,
+    interestRate: interestRate.value,
+    interestPaidDate: interestPaidDate.value,
+    interestAmount: interestAmount.value,
+    principalPaid: principalPaid.value,
+    principalPaidDate: principalPaidDate.value,
+    balancePrincipal: balancePrincipal.value
+  };
+
+  await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  alert("Saved Successfully");
+  location.reload();
+});
+
+fetch(API_URL, { method: "GET" })
+  .then(res => res.json())
+  .then(rows => {
+    rows.slice(1).reverse().forEach(r => {
+      list.innerHTML += `
+        <li class="list-group-item">
+          <b>${r[0]}</b><br>
+          Loan: ₹${r[1]} | Balance: ₹${r[7]}
+        </li>`;
+    });
+  });
+
+</script>
+
+</body>
+</html>
