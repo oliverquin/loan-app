@@ -6,87 +6,101 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  padding: 10px;
-}
+body { font-family: Arial; background:#f4f6f8; padding:10px; }
+h2 { text-align:center; }
 
-h2 {
-  text-align: center;
-}
-
-.tabs {
-  text-align: center;
-  margin-bottom: 15px;
-}
-
+.tabs { text-align:center; margin-bottom:15px; }
 .tabs button {
-  padding: 10px 18px;
-  margin: 0 5px;
-  border: none;
-  cursor: pointer;
-  background: #ccc;
-  border-radius: 4px;
-  font-weight: bold;
+  padding:10px 16px;
+  margin:0 5px;
+  border:none;
+  cursor:pointer;
+  background:#ccc;
+  border-radius:4px;
+  font-weight:bold;
 }
-
-.tabs button.active {
-  background: #007bff;
-  color: #fff;
-}
+.tabs button.active { background:#007bff; color:#fff; }
 
 .card {
-  max-width: 900px;
-  margin: 0 auto;
-  background: #fff;
-  padding: 15px;
-  border-radius: 6px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
-  display: none;
+  max-width:900px;
+  margin:0 auto 15px;
+  background:#fff;
+  padding:15px;
+  border-radius:6px;
+  box-shadow:0 0 8px rgba(0,0,0,0.1);
+  display:none;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
+label { display:block; margin-top:10px; font-weight:bold; }
+input { width:100%; padding:8px; margin-top:5px; }
+
+button.save {
+  margin-top:15px;
+  width:100%;
+  padding:12px;
+  font-size:16px;
+  background:#28a745;
+  color:white;
+  border:none;
+  border-radius:4px;
 }
 
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-  font-size: 14px;
-}
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th,td { border:1px solid #ddd; padding:8px; text-align:center; }
+th { background:#007bff; color:white; }
 
-th {
-  background: #007bff;
-  color: white;
-}
-
-.red {
-  background-color: #f8d7da;
-}
-
-.green {
-  background-color: #d4edda;
-}
+.red { background:#f8d7da; }
+.green { background:#d4edda; }
+#msg { margin-top:10px; font-weight:bold; text-align:center; }
 </style>
 </head>
 
 <body>
 
-<h2>Loan Management</h2>
+<h2>Loan Management App</h2>
 
 <div class="tabs">
-  <button class="active" onclick="showTab('history', event)">History</button>
-  <button onclick="showTab('pending', event)">Interest Pending</button>
+  <button class="active" onclick="showTab('entry',event)">Add Entry</button>
+  <button onclick="showTab('history',event)">History</button>
+  <button onclick="showTab('pending',event)">Interest Pending</button>
 </div>
 
-<!-- HISTORY TAB -->
+<!-- ADD ENTRY -->
+<div id="entry" class="card">
+  <h3>Add Payment</h3>
+
+  <label>Customer Name</label>
+  <input id="customerName">
+
+  <label>Loan Amount</label>
+  <input type="number" id="loanAmount">
+
+  <label>Interest Rate (%)</label>
+  <input type="number" id="interestRate">
+
+  <label>Date</label>
+  <input type="date" id="date">
+
+  <label>Principal Paid</label>
+  <input type="number" id="principalPaid" value="0">
+
+  <label>Interest Paid</label>
+  <input type="number" id="interestPaid" value="0">
+
+  <label>Balance Principal</label>
+  <input type="number" id="balancePrincipal">
+
+  <label>Remarks</label>
+  <input id="remarks">
+
+  <button class="save" onclick="saveEntry()">Save</button>
+  <div id="msg"></div>
+</div>
+
+<!-- HISTORY -->
 <div id="history" class="card">
-  <h3>Loan History</h3>
-  <table id="historyTable">
+  <h3>History</h3>
+  <table>
     <thead>
       <tr>
         <th>S.No</th>
@@ -94,17 +108,17 @@ th {
         <th>Remarks</th>
         <th>Interest Paid</th>
         <th>Principal Paid</th>
-        <th>Balance Principal</th>
+        <th>Balance</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="historyBody"></tbody>
   </table>
 </div>
 
-<!-- PENDING TAB -->
+<!-- PENDING -->
 <div id="pending" class="card">
-  <h3>Interest Pending List</h3>
-  <table id="pendingTable">
+  <h3>Interest Pending</h3>
+  <table>
     <thead>
       <tr>
         <th>Customer</th>
@@ -113,109 +127,104 @@ th {
         <th>Status</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="pendingBody"></tbody>
   </table>
 </div>
 
 <script>
-const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbyz_toAxpz3UP6CX9NSfm4h8uR0huRUvVxPwnSI77PREaDfBUdOFUfVtL6lZS8uGSGf/exec";
+const URL = "https://script.google.com/macros/s/AKfycbyz_toAxpz3UP6CX9NSfm4h8uR0huRUvVxPwnSI77PREaDfBUdOFUfVtL6lZS8uGSGf/exec";
+let data = [];
 
-let rawData = [];
-
-/* ---------- TAB SWITCH (FIXED, SAFE) ---------- */
-function showTab(tabId, event) {
-  const historyDiv = document.getElementById("history");
-  const pendingDiv = document.getElementById("pending");
-
-  historyDiv.style.display = tabId === "history" ? "block" : "none";
-  pendingDiv.style.display = tabId === "pending" ? "block" : "none";
-
-  document.querySelectorAll(".tabs button").forEach(btn =>
-    btn.classList.remove("active")
-  );
-
-  if (event && event.target) {
-    event.target.classList.add("active");
-  }
-
-  if (tabId === "pending") {
-    buildPendingList();
-  }
+/* ---------- Tabs ---------- */
+function showTab(id,e){
+  ["entry","history","pending"].forEach(x=>{
+    document.getElementById(x).style.display = x===id?"block":"none";
+  });
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active");
+  if(id==="pending") buildPending();
 }
 
-/* ---------- FETCH DATA ---------- */
-fetch(SCRIPT_URL)
-  .then(res => res.json())
-  .then(data => {
-    rawData = data;
+/* ---------- Load data ---------- */
+fetch(URL)
+  .then(r=>r.json())
+  .then(d=>{
+    data=d.slice(1); // remove header row
     buildHistory();
-    document.getElementById("history").style.display = "block";
-  })
-  .catch(err => console.error(err));
+    document.getElementById("entry").style.display="block";
+  });
 
-/* ---------- HISTORY TABLE ---------- */
-function buildHistory() {
-  const tbody = document.querySelector("#historyTable tbody");
-  tbody.innerHTML = "";
+/* ---------- Save ---------- */
+function saveEntry(){
+  const p=new URLSearchParams({
+    customerName:customerName.value,
+    loanAmount:loanAmount.value,
+    interestRate:interestRate.value,
+    date:date.value,
+    principalPaid:principalPaid.value,
+    interestAmount:interestPaid.value,
+    balancePrincipal:balancePrincipal.value,
+    remarks:remarks.value
+  });
 
-  rawData.forEach((r, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${r.date}</td>
-      <td>${r.remarks || ""}</td>
-      <td>${r.interestPaid}</td>
-      <td>${r.principalPaid}</td>
-      <td>${r.balancePrincipal}</td>
-    `;
-    tbody.appendChild(tr);
+  document.getElementById("msg").innerText="Saving...";
+  fetch(URL+"?"+p.toString())
+    .then(r=>r.text())
+    .then(txt=>{
+      document.getElementById("msg").innerText="Saved!";
+      setTimeout(()=>location.reload(),1000);
+    })
+    .catch(e=>{
+      document.getElementById("msg").innerText="Error saving";
+    });
+}
+
+/* ---------- History Table ---------- */
+function buildHistory(){
+  const tbody=document.getElementById("historyBody");
+  tbody.innerHTML="";
+  data.forEach((r,i)=>{
+    tbody.innerHTML+=`
+      <tr>
+        <td>${i+1}</td>
+        <td>${r[3]}</td>
+        <td>${r[7]||""}</td>
+        <td>${r[5]}</td>
+        <td>${r[4]}</td>
+        <td>${r[6]}</td>
+      </tr>`;
   });
 }
 
-/* ---------- INTEREST PENDING ---------- */
-function buildPendingList() {
-  const map = {};
-
-  rawData.forEach(r => {
-    const key = r.customerName;
-    if (!map[key]) {
-      map[key] = { months: 0, amount: 0 };
-    }
-
-    if (Number(r.interestPaid) === 0) {
-      map[key].months += 1;
-      map[key].amount += Number(r.interestAmount || 0);
+/* ---------- Pending Table ---------- */
+function buildPending(){
+  const map={};
+  data.forEach(r=>{
+    if(!map[r[0]]) map[r[0]]={months:0,total:0};
+    if(Number(r[5])===0){
+      map[r[0]].months++;
+      // approximate interest = (Loan Amount * Rate)/100
+      map[r[0]].total += Number(r[1])*Number(r[2])/100;
     }
   });
 
-  const tbody = document.querySelector("#pendingTable tbody");
-  tbody.innerHTML = "";
-
-  let hasPending = false;
-
-  Object.keys(map).forEach(name => {
-    if (map[name].months > 0) {
-      hasPending = true;
-      const tr = document.createElement("tr");
-      tr.className = "red";
-      tr.innerHTML = `
-        <td>${name}</td>
-        <td>${map[name].months}</td>
-        <td>${map[name].amount.toFixed(2)}</td>
-        <td>Pending</td>
-      `;
-      tbody.appendChild(tr);
+  const tbody=document.getElementById("pendingBody");
+  tbody.innerHTML="";
+  let any=false;
+  Object.keys(map).forEach(c=>{
+    if(map[c].months>0){
+      any=true;
+      tbody.innerHTML+=`
+        <tr class="red">
+          <td>${c}</td>
+          <td>${map[c].months}</td>
+          <td>${map[c].total.toFixed(2)}</td>
+          <td>Pending</td>
+        </tr>`;
     }
   });
-
-  if (!hasPending) {
-    const tr = document.createElement("tr");
-    tr.className = "green";
-    tr.innerHTML = `
-      <td colspan="4">All customers have paid interest ✔</td>
-    `;
-    tbody.appendChild(tr);
+  if(!any){
+    tbody.innerHTML=`<tr class="green"><td colspan="4">All customers paid ✔</td></tr>`;
   }
 }
 </script>
