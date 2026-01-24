@@ -2,235 +2,249 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Loan Management App</title>
+<title>Loan Management</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { font-family: Arial; background: #f4f6f8; padding: 10px; }
-h2 { text-align: center; }
-form, .history, .customers {
-  max-width: 600px;
-  margin: 15px auto;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+body { font-family: Arial; background:#f4f6f8; padding:10px; }
+h2 { text-align:center; }
+.card {
+  max-width:800px;
+  margin:15px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:8px;
+  box-shadow:0 0 8px rgba(0,0,0,.1);
 }
-label { display: block; margin-top: 10px; font-weight: bold; }
-input, select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  box-sizing: border-box;
+label { margin-top:10px; display:block; font-weight:bold; }
+input, select, textarea {
+  width:100%;
+  padding:8px;
+  margin-top:5px;
 }
 button {
-  margin-top: 15px;
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  margin-top:15px;
+  padding:12px;
+  width:100%;
+  font-size:16px;
+  background:#007bff;
+  color:white;
+  border:none;
+  border-radius:4px;
 }
-button:disabled { background: gray; }
-#msg { margin-top: 10px; text-align: center; font-weight: bold; }
 table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
 }
 th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-  font-size: 14px;
+  border:1px solid #ddd;
+  padding:8px;
+  text-align:center;
 }
-th { background: #007bff; color: white; }
-@media(max-width:600px) {
-  table, th, td { font-size: 12px; }
+th { background:#007bff; color:white; }
+.green { background:#d4edda; }
+.red { background:#f8d7da; }
+.tabs button {
+  width:49%;
+  padding:10px;
+  border:none;
+  cursor:pointer;
 }
+.active { background:#007bff; color:white; }
 </style>
 </head>
+
 <body>
 
 <h2>Loan Management</h2>
 
+<div class="card">
 <form id="loanForm">
-  <label>Customer Name</label>
-  <input type="text" id="customerName" list="customerSuggestions" required>
-  <datalist id="customerSuggestions"></datalist>
 
-  <label>Loan Amount</label>
-  <input type="number" step="0.01" id="loanAmount" required>
+<label>Customer Name</label>
+<input id="customerName" list="customerSuggestions" required>
+<datalist id="customerSuggestions"></datalist>
 
-  <label>Interest Rate (%)</label>
-  <input type="number" step="0.01" id="interestRate" required>
+<label>Loan Amount</label>
+<input type="number" id="loanAmount" required>
 
-  <label>Date</label>
-  <input type="date" id="date">
+<label>Interest Rate (%)</label>
+<input type="number" id="interestRate" required>
 
-  <label>Principal Paid</label>
-  <input type="number" step="0.01" id="principalPaid" value="0">
+<label>Date</label>
+<input type="date" id="date" required>
 
-  <label>Interest Amount</label>
-  <input type="number" step="0.01" id="interestAmount">
+<label>Principal Paid</label>
+<input type="number" id="principalPaid" value="0">
 
-  <label>Balance Principal</label>
-  <input type="number" step="0.01" id="balancePrincipal" readonly>
+<label>Interest Paid</label>
+<input type="number" id="interestAmount">
 
-  <button type="submit">Save</button>
-  <div id="msg"></div>
+<label>Balance Principal</label>
+<input id="balancePrincipal" readonly>
+
+<label>Remarks</label>
+<textarea id="remarks"></textarea>
+
+<button type="submit">Save</button>
+<div id="msg"></div>
+
 </form>
-
-<div class="customers">
-  <h3>Customer List</h3>
-  <select id="customerSelect">
-    <option value="">-- Select Customer --</option>
-  </select>
 </div>
 
-<div class="history">
-  <h3>Loan History</h3>
-  <table id="historyTable">
-    <thead>
-      <tr>
-        <th>S.No</th>
-        <th>Date</th>
-        <th>Principal Paid</th>
-        <th>Interest Paid</th>
-        <th>Balance Principal</th>
-        <th>Remarks</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<div class="tabs card">
+  <button class="active" onclick="showTab('history')">History</button>
+  <button onclick="showTab('pending')">Interest Pending</button>
+</div>
+
+<div id="history" class="card">
+<select id="customerSelect">
+<option value="">Select Customer</option>
+</select>
+
+<table>
+<thead>
+<tr>
+<th>S.No</th>
+<th>Date</th>
+<th>Remarks</th>
+<th>Interest Paid</th>
+<th>Principal Paid</th>
+<th>Balance Principal</th>
+</tr>
+</thead>
+<tbody id="historyBody"></tbody>
+</table>
+</div>
+
+<div id="pending" class="card" style="display:none">
+<table>
+<thead>
+<tr>
+<th>S.No</th>
+<th>Customer</th>
+<th>Unpaid Months</th>
+<th>Total Pending Interest</th>
+</tr>
+</thead>
+<tbody id="pendingBody"></tbody>
+</table>
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnKBs3d91XTvabjXESi3dA8UNDeiJoT_7r9hf9zI3-81oIfyZ8gj8CqdIOjG_wh5WD/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxx5crPzroY1Asc3k8yl9uJemKH1IjASz9gqU0Om-q7beR_MjyPTi6t3pmewdcR1FOl/exec";
 
-/* ---------- Helpers ---------- */
-function formatDate(dateValue) {
-  const d = new Date(dateValue);
-  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+/* Helpers */
+const fmt = d => new Date(d).toLocaleDateString("en-CA");
+const mKey = d => {
+  d=new Date(d); return d.getFullYear()+"-"+(d.getMonth()+1);
+};
+
+async function fetchData(){
+  const r = await fetch(SCRIPT_URL);
+  return (await r.json()).slice(1);
 }
 
-/* ---------- Auto calculations ---------- */
-function calculate() {
-  const loan = parseFloat(document.getElementById("loanAmount").value) || 0;
-  const principalPaid = parseFloat(document.getElementById("principalPaid").value) || 0;
-  const rate = parseFloat(document.getElementById("interestRate").value) || 0;
-
-  const balance = loan - principalPaid;
-  const interest = ((balance * rate) / 100).toFixed(2);
-
-  document.getElementById("balancePrincipal").value = balance.toFixed(2);
-  document.getElementById("interestAmount").value = interest;
+/* Tabs */
+function showTab(id){
+  history.style.display = id==="history"?"block":"none";
+  pending.style.display = id==="pending"?"block":"none";
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  event.target.classList.add("active");
+  if(id==="pending") loadPending();
 }
 
-document.getElementById("loanAmount").addEventListener("input", calculate);
-document.getElementById("interestRate").addEventListener("input", calculate);
-document.getElementById("principalPaid").addEventListener("input", calculate);
-
-/* ---------- Fetch data ---------- */
-async function fetchData() {
-  try {
-    const res = await fetch(SCRIPT_URL);
-    const data = await res.json();
-    return data.slice(1); // remove header row
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
+/* Calculate */
+function calc(){
+  const loan=+loanAmount.value||0;
+  const p=+principalPaid.value||0;
+  const r=+interestRate.value||0;
+  const bal=loan-p;
+  balancePrincipal.value=bal.toFixed(2);
+  interestAmount.value=((bal*r)/100).toFixed(2);
 }
+loanAmount.oninput=principalPaid.oninput=interestRate.oninput=calc;
 
-/* ---------- Populate customers ---------- */
-async function populateCustomerList() {
-  const data = await fetchData();
-  const select = document.getElementById("customerSelect");
-  const datalist = document.getElementById("customerSuggestions");
-
-  const customers = [...new Set(data.map(r => r[0]).filter(Boolean))];
-
-  select.innerHTML = '<option value="">-- Select Customer --</option>';
-  datalist.innerHTML = "";
-
-  customers.forEach(c => {
-    select.innerHTML += `<option value="${c}">${c}</option>`;
-    datalist.innerHTML += `<option value="${c}">`;
+/* Populate */
+async function populate(){
+  const data=await fetchData();
+  const names=[...new Set(data.map(r=>r[0]))];
+  customerSelect.innerHTML='<option value="">Select</option>';
+  customerSuggestions.innerHTML='';
+  names.forEach(n=>{
+    customerSelect.innerHTML+=`<option>${n}</option>`;
+    customerSuggestions.innerHTML+=`<option value="${n}">`;
   });
 }
 
-/* ---------- Display history ---------- */
-async function displayHistory(customer) {
-  const tbody = document.querySelector("#historyTable tbody");
-  tbody.innerHTML = "";
-
-  const data = await fetchData();
-  const rows = data
-    .filter(r => r[0] === customer)
-    .sort((a, b) => new Date(b[3]) - new Date(a[3]));
-
-  rows.forEach((r, index) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${formatDate(r[3])}</td>
-      <td>${r[4]}</td>
+/* History */
+customerSelect.onchange=async()=>{
+  const data=await fetchData();
+  const rows=data.filter(r=>r[0]===customerSelect.value)
+    .sort((a,b)=>new Date(b[3])-new Date(a[3]));
+  historyBody.innerHTML='';
+  rows.forEach((r,i)=>{
+    historyBody.innerHTML+=`
+    <tr>
+      <td>${i+1}</td>
+      <td>${fmt(r[3])}</td>
+      <td>${r[7]}</td>
       <td>${r[5]}</td>
+      <td>${r[4]}</td>
       <td>${r[6]}</td>
-      <td>${r[7] || ""}</td>
-    `;
-    tbody.appendChild(tr);
+    </tr>`;
+  });
+};
+
+/* Pending Interest */
+async function loadPending(){
+  const data=await fetchData();
+  const map={};
+  data.forEach(r=>{
+    const n=r[0], m=mKey(r[3]);
+    map[n]=map[n]||{};
+    map[n][m]=(map[n][m]||0)+(+r[5]||0);
+  });
+
+  pendingBody.innerHTML='';
+  let i=1;
+  Object.keys(map).forEach(n=>{
+    const months=Object.keys(map[n]);
+    const unpaid=months.filter(m=>map[n][m]===0);
+    const total=unpaid.length*Math.max(...Object.values(map[n]));
+    const cls=unpaid.length?"red":"green";
+    pendingBody.innerHTML+=`
+    <tr class="${cls}">
+      <td>${i++}</td>
+      <td>${n}</td>
+      <td>${unpaid.length}</td>
+      <td>${total.toFixed(2)}</td>
+    </tr>`;
   });
 }
 
-document.getElementById("customerSelect").addEventListener("change", function () {
-  const customer = this.value;
-  if (customer) displayHistory(customer);
-  else document.querySelector("#historyTable tbody").innerHTML = "";
-});
-
-/* ---------- Save ---------- */
-document.getElementById("loanForm").addEventListener("submit", function (e) {
+/* Save */
+loanForm.onsubmit=async e=>{
   e.preventDefault();
-
-  const params = new URLSearchParams({
-    customerName: document.getElementById("customerName").value,
-    loanAmount: document.getElementById("loanAmount").value,
-    interestRate: document.getElementById("interestRate").value,
-    date: document.getElementById("date").value,
-    principalPaid: document.getElementById("principalPaid").value || 0,
-    interestAmount: document.getElementById("interestAmount").value,
-    balancePrincipal: document.getElementById("balancePrincipal").value
+  const p=new URLSearchParams({
+    customerName:customerName.value,
+    loanAmount:loanAmount.value,
+    interestRate:interestRate.value,
+    date:date.value,
+    principalPaid:principalPaid.value,
+    interestAmount:interestAmount.value,
+    balancePrincipal:balancePrincipal.value,
+    remarks:remarks.value
   });
+  msg.innerText="Saving...";
+  const r=await fetch(SCRIPT_URL+"?"+p);
+  msg.innerText=await r.text();
+  loanForm.reset();
+  populate();
+};
 
-  document.getElementById("msg").innerText = "Saving...";
-
-  fetch(`${SCRIPT_URL}?${params.toString()}`)
-    .then(r => r.text())
-    .then(text => {
-      if (text === "OK") {
-        document.getElementById("msg").style.color = "green";
-        document.getElementById("msg").innerText = "Saved successfully!";
-        document.getElementById("loanForm").reset();
-        populateCustomerList();
-      } else {
-        document.getElementById("msg").style.color = "red";
-        document.getElementById("msg").innerText = text;
-      }
-    })
-    .catch(err => {
-      document.getElementById("msg").style.color = "red";
-      document.getElementById("msg").innerText = "Error saving data";
-      console.error(err);
-    });
-});
-
-/* ---------- Initial load ---------- */
-populateCustomerList();
+populate();
 </script>
 
 </body>
