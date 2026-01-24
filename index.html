@@ -132,36 +132,13 @@ th { background:#007bff; color:white; }
   </table>
 </div>
 
-<!-- PENDING -->
-<div id="pending" class="card">
-  <h3>Interest Pending</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>S.No</th>
-        <th>Customer</th>
-        <th>Pending Months</th>
-        <th>Total Pending Interest</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="pendingBody"></tbody>
-  </table>
-</div>
+
 
 <script>
 const URL = "https://script.google.com/macros/s/AKfycbyz_toAxpz3UP6CX9NSfm4h8uR0huRUvVxPwnSI77PREaDfBUdOFUfVtL6lZS8uGSGf/exec";
 let data = [];
 
-/* ---------- Tabs ---------- */
-function showTab(id,e){
-  ["entry","history","pending"].forEach(x=>{
-    document.getElementById(x).style.display = x===id?"block":"none";
-  });
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  e.target.classList.add("active");
-  if(id==="pending") buildPending();
-}
+
 
 /* ---------- Load data ---------- */
 fetch(URL)
@@ -278,3 +255,4 @@ function buildPending(){
 
 </body>
 </html>
+
