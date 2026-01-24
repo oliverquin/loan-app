@@ -11,18 +11,19 @@ h2 { text-align:center; }
 
 .tabs { text-align:center; margin-bottom:15px; }
 .tabs button {
-  padding:10px 16px;
-  margin:0 5px;
+  padding:10px 12px;
+  margin:0 3px;
   border:none;
   cursor:pointer;
   background:#ccc;
   border-radius:4px;
   font-weight:bold;
+  font-size:14px;
 }
 .tabs button.active { background:#007bff; color:#fff; }
 
 .card {
-  max-width:900px;
+  max-width:1000px;
   margin:0 auto 15px;
   background:#fff;
   padding:15px;
@@ -32,7 +33,7 @@ h2 { text-align:center; }
 }
 
 label { display:block; margin-top:10px; font-weight:bold; }
-input { width:100%; padding:8px; margin-top:5px; }
+input, select { width:100%; padding:8px; margin-top:5px; box-sizing:border-box; }
 
 button.save {
   margin-top:15px;
@@ -45,13 +46,19 @@ button.save {
   border-radius:4px;
 }
 
-table { width:100%; border-collapse:collapse; margin-top:10px; }
-th,td { border:1px solid #ddd; padding:8px; text-align:center; }
+table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+th,td { border:1px solid #ddd; padding:6px; text-align:center; }
 th { background:#007bff; color:white; }
-
 .red { background:#f8d7da; }
 .green { background:#d4edda; }
+
 #msg { margin-top:10px; font-weight:bold; text-align:center; }
+
+/* Mobile adjustments */
+@media(max-width:600px){
+  table, th, td { font-size:12px; padding:4px; }
+  .tabs button { font-size:12px; padding:8px 6px; }
+}
 </style>
 </head>
 
@@ -100,10 +107,20 @@ th { background:#007bff; color:white; }
 <!-- HISTORY -->
 <div id="history" class="card">
   <h3>History</h3>
+
+  <!-- Filters -->
+  <label>Filter by Customer</label>
+  <input id="filterCustomer" placeholder="Enter customer name" oninput="buildHistory()">
+
+  <label>Filter by Date Range</label>
+  <input type="date" id="filterStart" onchange="buildHistory()"> to 
+  <input type="date" id="filterEnd" onchange="buildHistory()">
+
   <table>
     <thead>
       <tr>
         <th>S.No</th>
+        <th>Customer</th>
         <th>Date</th>
         <th>Remarks</th>
         <th>Interest Paid</th>
@@ -121,6 +138,7 @@ th { background:#007bff; color:white; }
   <table>
     <thead>
       <tr>
+        <th>S.No</th>
         <th>Customer</th>
         <th>Pending Months</th>
         <th>Total Pending Interest</th>
@@ -179,20 +197,47 @@ function saveEntry(){
     });
 }
 
-/* ---------- History Table ---------- */
+/* ---------- Format date only YYYY-MM-DD ---------- */
+function formatDate(dateStr){
+  const d=new Date(dateStr);
+  const yyyy=d.getFullYear();
+  let mm=d.getMonth()+1;
+  let dd=d.getDate();
+  if(mm<10) mm='0'+mm;
+  if(dd<10) dd='0'+dd;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/* ---------- History Table Descending by Date + Filters ---------- */
 function buildHistory(){
   const tbody=document.getElementById("historyBody");
   tbody.innerHTML="";
-  data.forEach((r,i)=>{
-    tbody.innerHTML+=`
-      <tr>
-        <td>${i+1}</td>
-        <td>${r[3]}</td>
-        <td>${r[7]||""}</td>
-        <td>${r[5]}</td>
-        <td>${r[4]}</td>
-        <td>${r[6]}</td>
-      </tr>`;
+  const custFilter = document.getElementById("filterCustomer").value.toLowerCase();
+  const startDate = document.getElementById("filterStart").value;
+  const endDate = document.getElementById("filterEnd").value;
+
+  const sorted = data.slice().sort((a,b)=> new Date(b[3]) - new Date(a[3]));
+
+  let index = 1;
+  sorted.forEach(r=>{
+    let custMatch = r[0].toLowerCase().includes(custFilter);
+    let dateMatch = true;
+    if(startDate && new Date(r[3])<new Date(startDate)) dateMatch=false;
+    if(endDate && new Date(r[3])>new Date(endDate)) dateMatch=false;
+
+    if(custMatch && dateMatch){
+      tbody.innerHTML+=`
+        <tr>
+          <td>${index}</td>
+          <td>${r[0]}</td>
+          <td>${formatDate(r[3])}</td>
+          <td>${r[7]||""}</td>
+          <td>${r[5]}</td>
+          <td>${r[4]}</td>
+          <td>${r[6]}</td>
+        </tr>`;
+      index++;
+    }
   });
 }
 
@@ -203,7 +248,6 @@ function buildPending(){
     if(!map[r[0]]) map[r[0]]={months:0,total:0};
     if(Number(r[5])===0){
       map[r[0]].months++;
-      // approximate interest = (Loan Amount * Rate)/100
       map[r[0]].total += Number(r[1])*Number(r[2])/100;
     }
   });
@@ -211,20 +255,23 @@ function buildPending(){
   const tbody=document.getElementById("pendingBody");
   tbody.innerHTML="";
   let any=false;
+  let sno=1;
   Object.keys(map).forEach(c=>{
     if(map[c].months>0){
       any=true;
       tbody.innerHTML+=`
         <tr class="red">
+          <td>${sno}</td>
           <td>${c}</td>
           <td>${map[c].months}</td>
           <td>${map[c].total.toFixed(2)}</td>
           <td>Pending</td>
         </tr>`;
+      sno++;
     }
   });
   if(!any){
-    tbody.innerHTML=`<tr class="green"><td colspan="4">All customers paid ✔</td></tr>`;
+    tbody.innerHTML=`<tr class="green"><td colspan="5">All customers paid ✔</td></tr>`;
   }
 }
 </script>
