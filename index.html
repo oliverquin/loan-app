@@ -2,50 +2,81 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Loan Interest Management</title>
+<title>Loan Management App</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 15px; }
-  h2 { text-align: center; color: #333; margin-bottom: 10px; }
-  .tabs { text-align: center; margin-bottom: 10px; }
-  .tabs button {
-    padding: 10px 20px;
-    margin: 0 5px;
-    border: none;
-    background: #ddd;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 16px;
-  }
-  .tabs button.active { background: #007bff; color: white; }
-  .card {
-    background: white;
-    border-radius: 6px;
-    padding: 15px;
-    margin-bottom: 15px;
-    display: none;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
-  th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-    font-size: 14px;
-  }
-  th { background: #007bff; color: white; }
-  .red { background: #f8d7da; }
-  .green { background: #d4edda; }
-</style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  padding: 10px;
+}
 
+h2 {
+  text-align: center;
+}
+
+.tabs {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.tabs button {
+  padding: 10px 18px;
+  margin: 0 5px;
+  border: none;
+  cursor: pointer;
+  background: #ccc;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.tabs button.active {
+  background: #007bff;
+  color: #fff;
+}
+
+.card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  display: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+th {
+  background: #007bff;
+  color: white;
+}
+
+.red {
+  background-color: #f8d7da;
+}
+
+.green {
+  background-color: #d4edda;
+}
+</style>
 </head>
+
 <body>
 
-<h2>Loan Interest Management</h2>
+<h2>Loan Management</h2>
 
 <div class="tabs">
   <button class="active" onclick="showTab('history', event)">History</button>
@@ -54,12 +85,11 @@
 
 <!-- HISTORY TAB -->
 <div id="history" class="card">
-  <h3>Payment History</h3>
+  <h3>Loan History</h3>
   <table id="historyTable">
     <thead>
       <tr>
         <th>S.No</th>
-        <th>Customer</th>
         <th>Date</th>
         <th>Remarks</th>
         <th>Interest Paid</th>
@@ -73,14 +103,14 @@
 
 <!-- PENDING TAB -->
 <div id="pending" class="card">
-  <h3>Interest Pending</h3>
+  <h3>Interest Pending List</h3>
   <table id="pendingTable">
     <thead>
       <tr>
-        <th>S.No</th>
         <th>Customer</th>
-        <th>Unpaid Months</th>
+        <th>Pending Months</th>
         <th>Total Pending Interest</th>
+        <th>Status</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -88,39 +118,44 @@
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyz_toAxpz3UP6CX9NSfm4h8uR0huRUvVxPwnSI77PREaDfBUdOFUfVtL6lZS8uGSGf/exec";
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbyz_toAxpz3UP6CX9NSfm4h8uR0huRUvVxPwnSI77PREaDfBUdOFUfVtL6lZS8uGSGf/exec";
 
 let rawData = [];
 
-/* ---------------- TAB SWITCH ---------------- */
-function showTab(id, event) {
-  const historyTab = document.getElementById("history");
-  const pendingTab = document.getElementById("pending");
+/* ---------- TAB SWITCH (FIXED, SAFE) ---------- */
+function showTab(tabId, event) {
+  const historyDiv = document.getElementById("history");
+  const pendingDiv = document.getElementById("pending");
 
-  historyTab.style.display = id === "history" ? "block" : "none";
-  pendingTab.style.display = id === "pending" ? "block" : "none";
+  historyDiv.style.display = tabId === "history" ? "block" : "none";
+  pendingDiv.style.display = tabId === "pending" ? "block" : "none";
 
-  document.querySelectorAll(".tabs button").forEach(btn => btn.classList.remove("active"));
-  event.target.classList.add("active");
+  document.querySelectorAll(".tabs button").forEach(btn =>
+    btn.classList.remove("active")
+  );
 
-  if (id === "pending") loadPending();
-}
+  if (event && event.target) {
+    event.target.classList.add("active");
+  }
 
-/* ---------------- FETCH DATA ---------------- */
-async function fetchData() {
-  try {
-    const res = await fetch(SCRIPT_URL);
-    const json = await res.json();
-    rawData = json.slice(1); // Remove header row
-    loadHistory();
-    document.getElementById("history").style.display = "block";
-  } catch (err) {
-    console.error("Error fetching data:", err);
+  if (tabId === "pending") {
+    buildPendingList();
   }
 }
 
-/* ---------------- LOAD HISTORY ---------------- */
-function loadHistory() {
+/* ---------- FETCH DATA ---------- */
+fetch(SCRIPT_URL)
+  .then(res => res.json())
+  .then(data => {
+    rawData = data;
+    buildHistory();
+    document.getElementById("history").style.display = "block";
+  })
+  .catch(err => console.error(err));
+
+/* ---------- HISTORY TABLE ---------- */
+function buildHistory() {
   const tbody = document.querySelector("#historyTable tbody");
   tbody.innerHTML = "";
 
@@ -128,74 +163,61 @@ function loadHistory() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>${r[0]}</td>
-      <td>${new Date(r[3]).toLocaleDateString("en-CA")}</td>
-      <td>${r[7] || ""}</td>
-      <td>${r[5]}</td>
-      <td>${r[4]}</td>
-      <td>${r[6]}</td>
+      <td>${r.date}</td>
+      <td>${r.remarks || ""}</td>
+      <td>${r.interestPaid}</td>
+      <td>${r.principalPaid}</td>
+      <td>${r.balancePrincipal}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-/* ---------------- LOAD PENDING ---------------- */
-function loadPending() {
+/* ---------- INTEREST PENDING ---------- */
+function buildPendingList() {
   const map = {};
 
   rawData.forEach(r => {
-    const name = r[0];
-    const month = new Date(r[3]).getFullYear() + "-" + (new Date(r[3]).getMonth() + 1);
+    const key = r.customerName;
+    if (!map[key]) {
+      map[key] = { months: 0, amount: 0 };
+    }
 
-    if (!map[name]) map[name] = {};
-    if (!map[name][month]) map[name][month] = 0;
-
-    if (Number(r[5]) === 0) {
-      map[name][month] += 1;
+    if (Number(r.interestPaid) === 0) {
+      map[key].months += 1;
+      map[key].amount += Number(r.interestAmount || 0);
     }
   });
 
   const tbody = document.querySelector("#pendingTable tbody");
   tbody.innerHTML = "";
-  let index = 1;
+
+  let hasPending = false;
 
   Object.keys(map).forEach(name => {
-    const months = Object.keys(map[name]);
-    const unpaidMonths = months.filter(m => map[name][m] > 0);
-    let totalPending = 0;
-
-    unpaidMonths.forEach(() => {
-      const customerRows = rawData.filter(x => x[0] === name);
-      const lastInterest = Math.max(...customerRows.map(x => Number(x[5]) || 0));
-      totalPending += lastInterest;
-    });
-
-    if (unpaidMonths.length > 0) {
+    if (map[name].months > 0) {
+      hasPending = true;
       const tr = document.createElement("tr");
       tr.className = "red";
       tr.innerHTML = `
-        <td>${index++}</td>
         <td>${name}</td>
-        <td>${unpaidMonths.length}</td>
-        <td>${totalPending.toFixed(2)}</td>
+        <td>${map[name].months}</td>
+        <td>${map[name].amount.toFixed(2)}</td>
+        <td>Pending</td>
       `;
       tbody.appendChild(tr);
     }
   });
 
-  if (!tbody.children.length) {
+  if (!hasPending) {
     const tr = document.createElement("tr");
     tr.className = "green";
     tr.innerHTML = `
-      <td colspan="4">All customers are up to date!</td>
+      <td colspan="4">All customers have paid interest ✔</td>
     `;
     tbody.appendChild(tr);
   }
 }
-
-/* ---------------- START ---------------- */
-fetchData();
-
 </script>
 
 </body>
