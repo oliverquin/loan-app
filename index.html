@@ -8,18 +8,18 @@
 body { font-family: Arial,sans-serif; background:#f4f6f8; padding:10px; }
 h2 { text-align:center; }
 .tabs { display:flex; justify-content:space-around; margin-bottom:15px; }
-.tabs button { flex:1; padding:10px; margin:0 4px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; background:#ccc; color:#000; }
+.tabs button { flex:1; padding:10px; margin:0 4px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; background:#ccc; }
 .tabs button.active { background:#2563eb; color:#fff; }
 .card { max-width:1000px; margin:0 auto 15px; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); display:none; }
-input,button,select { width:100%; padding:10px; margin:6px 0; border-radius:6px; border:1px solid #ccc; box-sizing:border-box; }
+input,button { width:100%; padding:10px; margin:6px 0; border-radius:6px; border:1px solid #ccc; }
 button { background:#2563eb; color:#fff; font-size:16px; border:none; cursor:pointer; }
 table { width:100%; border-collapse:collapse; font-size:14px; }
 th,td { padding:8px; border-bottom:1px solid #ddd; text-align:center; }
 th { background:#2563eb; color:white; }
-.delete-icon { cursor:pointer; color:red; font-weight:bold; font-size:16px; }
-@media(max-width:600px){ table, th, td { font-size:12px; padding:6px; } .tabs button { font-size:12px; padding:8px; } }
+.delete-icon { cursor:pointer; color:red; font-size:16px; }
 </style>
 </head>
+
 <body>
 
 <h2>Loan Management App</h2>
@@ -33,25 +33,23 @@ th { background:#2563eb; color:white; }
 <!-- DASHBOARD -->
 <div id="dashboard" class="card">
   <h3>Dashboard</h3>
-  <label>Filter Month & Year</label>
   <input type="month" id="dashboardMonth" onchange="buildDashboard()">
-  <p><strong>Total Outstanding Loan:</strong> <span id="totalLoan">0</span></p>
-  <p><strong>Interest Received:</strong> <span id="interestReceived">0</span></p>
+  <p><b>Total Outstanding Loan:</b> <span id="totalLoan">0</span></p>
+  <p><b>Interest Received:</b> <span id="interestReceived">0</span></p>
 </div>
 
-<!-- ADD ENTRY -->
+<!-- ENTRY -->
 <div id="entry" class="card">
   <h3>Add Entry</h3>
   <input id="customerName" placeholder="Customer Name">
   <input id="loanAmount" type="number" placeholder="Loan Amount">
-  <input id="interestRate" type="number" placeholder="Interest Rate (%)">
+  <input id="interestRate" type="number" placeholder="Interest Rate %">
   <input id="date" type="date">
-  <input id="principalPaid" type="number" placeholder="Principal Paid (default 0)" value="0">
-  <input id="interestPaid" type="number" placeholder="Interest Paid" value="0">
+  <input id="principalPaid" type="number" value="0" placeholder="Principal Paid">
+  <input id="interestPaid" type="number" value="0" placeholder="Interest Paid">
   <input id="balancePrincipal" type="number" placeholder="Balance Principal" readonly>
   <input id="remarks" placeholder="Remarks">
   <button onclick="saveEntry()">Save</button>
-  <div id="msg"></div>
 </div>
 
 <!-- HISTORY -->
@@ -62,13 +60,13 @@ th { background:#2563eb; color:white; }
     <thead>
       <tr>
         <th>S.No</th>
-        <th>Customer</th>
+        <th>Name</th>
         <th>Date</th>
         <th>Remarks</th>
-        <th>Interest Paid</th>
-        <th>Principal Paid</th>
-        <th>Balance Principal</th>
-        <th>Actions</th>
+        <th>Interest</th>
+        <th>Principal</th>
+        <th>Balance</th>
+        <th>Delete</th>
       </tr>
     </thead>
     <tbody id="historyBody"></tbody>
@@ -76,135 +74,100 @@ th { background:#2563eb; color:white; }
 </div>
 
 <script>
-const URL = "https://script.google.com/macros/s/AKfycbzT2d6Q7hG8QVj6Q7XTD_cbEh7AG_UqTu3pdb3Z4ZH1UvqC3ZGVut2IHNY8HOmNM-1S/exec"; // replace with Apps Script URL
+const URL = "https://script.google.com/macros/s/AKfycbzT2d6Q7hG8QVj6Q7XTD_cbEh7AG_UqTu3pdb3Z4ZH1UvqC3ZGVut2IHNY8HOmNM-1S/exec";
 let data = [];
 
-function showTab(id,el){
-  ['dashboard','entry','history'].forEach(x=>document.getElementById(x).style.display=x===id?'block':'none');
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  el.classList.add("active");
-  if(id==='dashboard') buildDashboard();
-}
-
-function loadData(){
-  fetch(URL)
-    .then(r=>r.json())
-    .then(d=>{
-      data = d.slice(1); // remove header
-      renderHistory();
-      showTab('entry',document.querySelectorAll('.tabs button')[1]);
-      autoBalancePrincipal();
-    });
-}
-
-function autoBalancePrincipal(){
-  // calculate balance principal automatically if empty
-  const cust = customerName.value;
-  if(!cust) return;
-  let lastBalance = 0;
-  const custRows = data.filter(r=>r[0]===cust);
-  if(custRows.length>0){
-    lastBalance = Number(custRows[custRows.length-1][6]);
-  }
-  const principalPaidVal = Number(principalPaid.value||0);
-  balancePrincipal.value = (lastBalance - principalPaidVal).toFixed(2);
-}
-
-// update balance principal on principal change
-principalPaid.addEventListener('input',autoBalancePrincipal);
-
-function buildDashboard(){
-  let totalLoan=0, interestReceived=0;
-  const lastBalances = {};
-  const filter = document.getElementById('dashboardMonth').value; // format yyyy-mm
-  const [filterYear,filterMonth] = filter ? filter.split('-').map(Number) : [null,null];
-
-  data.forEach(r=>{
-    const custId = r[8];
-    const date = new Date(r[3]);
-    if(!lastBalances[custId] || new Date(lastBalances[custId].date)<date){
-      lastBalances[custId] = {balance:Number(r[6]), date:r[3]};
-    }
-    if(filterYear && filterMonth){
-      if(date.getFullYear()===filterYear && (date.getMonth()+1)===filterMonth){
-        interestReceived += Number(r[5]);
-      }
-    } else {
-      const now = new Date();
-      if(date.getFullYear()===now.getFullYear() && date.getMonth()===now.getMonth()){
-        interestReceived += Number(r[5]);
-      }
-    }
-  });
-
-  Object.keys(lastBalances).forEach(c=> totalLoan += lastBalances[c].balance);
-  document.getElementById('totalLoan').innerText = totalLoan.toFixed(2);
-  document.getElementById('interestReceived').innerText = interestReceived.toFixed(2);
-}
-
-function renderHistory(){
-  const filter = document.getElementById('filterCustomer').value.toLowerCase();
-  const tbody = document.getElementById('historyBody');
-  tbody.innerHTML='';
-  let index=1;
-  data.slice().reverse().forEach(r=>{
-    if(!r[0].toLowerCase().includes(filter)) return;
-    const dateStr = new Date(r[3]).toISOString().split('T')[0]; // YYYY-MM-DD
-    tbody.innerHTML += `<tr>
-      <td>${index++}</td>
-      <td>${r[0]}</td>
-      <td>${dateStr}</td>
-      <td>${r[7]}</td>
-      <td>${r[5]}</td>
-      <td>${r[4]}</td>
-      <td>${r[6]}</td>
-      <td><span class="delete-icon" onclick="deleteEntry('${r[9]}')">🗑️</span></td>
-    </tr>`;
-  });
-}
-
-function saveEntry(){
-  const lastBalance = data.filter(r=>r[0]===customerName.value).pop()?.[6] || Number(loanAmount.value||0);
-  const obj = {
-    customerName:customerName.value,
-    loanAmount:loanAmount.value,
-    interestRate:interestRate.value,
-    date:date.value,
-    principalPaid:principalPaid.value || 0,
-    interestPaid:interestPaid.value || 0,
-    balancePrincipal: lastBalance - Number(principalPaid.value||0),
-    remarks:remarks.value
-  };
-  fetch(`${URL}?action=save&customerName=${encodeURIComponent(obj.customerName)}&loanAmount=${obj.loanAmount}&interestRate=${obj.interestRate}&date=${obj.date}&principalPaid=${obj.principalPaid}&interestPaid=${obj.interestPaid}&balancePrincipal=${obj.balancePrincipal}&remarks=${encodeURIComponent(obj.remarks)}`)
-    .then(r=>r.text())
-    .then(txt=>{
-      resetForm();
-      loadData();
-      showTab('history',document.querySelectorAll('.tabs button')[2]);
-    });
-}
-
-function deleteEntry(recordId){
-  if(!confirm("Do you want to delete this record?")) return;
-  fetch(`${URL}?action=delete&recordId=${recordId}`)
-    .then(r=>r.text())
-    .then(txt=>loadData());
-}
-
-function resetForm(){
-  customerName.value=''; loanAmount.value=''; interestRate.value='';
-  date.value=''; principalPaid.value='0'; interestPaid.value='0';
-  balancePrincipal.value=''; remarks.value='';
-}
-
+/* ELEMENT REFERENCES — FIXED ORDER */
 const customerName = document.getElementById('customerName');
 const loanAmount = document.getElementById('loanAmount');
 const interestRate = document.getElementById('interestRate');
-const date = document.getElementById('date');
+const dateInput = document.getElementById('date');
 const principalPaid = document.getElementById('principalPaid');
 const interestPaid = document.getElementById('interestPaid');
 const balancePrincipal = document.getElementById('balancePrincipal');
 const remarks = document.getElementById('remarks');
+
+/* AUTO BALANCE */
+function autoBalancePrincipal(){
+  const cust = customerName.value;
+  if(!cust) return;
+
+  let lastBalance = Number(loanAmount.value || 0);
+  const rows = data.filter(r => r[0] === cust);
+  if(rows.length) lastBalance = Number(rows[rows.length-1][6]);
+
+  balancePrincipal.value = (lastBalance - Number(principalPaid.value || 0)).toFixed(2);
+}
+
+principalPaid.addEventListener('input', autoBalancePrincipal);
+
+/* TABS */
+function showTab(id,el){
+  ['dashboard','entry','history'].forEach(x=>document.getElementById(x).style.display = x===id?'block':'none');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(id==='dashboard') buildDashboard();
+}
+
+/* LOAD */
+function loadData(){
+  fetch(URL).then(r=>r.json()).then(d=>{
+    data = d.slice(1);
+    renderHistory();
+    autoBalancePrincipal();
+  });
+}
+
+/* DASHBOARD */
+function buildDashboard(){
+  let total=0, interest=0;
+  const map={};
+  const m=document.getElementById('dashboardMonth').value;
+  const [y,mo]=m?m.split('-').map(Number):[];
+
+  data.forEach(r=>{
+    const cid=r[8], dt=new Date(r[3]);
+    if(!map[cid]||new Date(map[cid].d)<dt) map[cid]={b:r[6],d:r[3]};
+    if(!m || (dt.getFullYear()==y && dt.getMonth()+1==mo)) interest+=Number(r[5]);
+  });
+
+  Object.values(map).forEach(v=>total+=Number(v.b));
+  totalLoan.innerText=total.toFixed(2);
+  interestReceived.innerText=interest.toFixed(2);
+}
+
+/* HISTORY */
+function renderHistory(){
+  const f=document.getElementById('filterCustomer').value.toLowerCase();
+  historyBody.innerHTML='';
+  let i=1;
+  data.slice().reverse().forEach(r=>{
+    if(!r[0].toLowerCase().includes(f)) return;
+    historyBody.innerHTML+=`
+      <tr>
+        <td>${i++}</td>
+        <td>${r[0]}</td>
+        <td>${r[3]}</td>
+        <td>${r[7]}</td>
+        <td>${r[5]}</td>
+        <td>${r[4]}</td>
+        <td>${r[6]}</td>
+        <td><span class="delete-icon" onclick="deleteEntry('${r[9]}')">🗑️</span></td>
+      </tr>`;
+  });
+}
+
+/* SAVE */
+function saveEntry(){
+  fetch(`${URL}?action=save&customerName=${encodeURIComponent(customerName.value)}&loanAmount=${loanAmount.value}&interestRate=${interestRate.value}&date=${dateInput.value}&principalPaid=${principalPaid.value}&interestPaid=${interestPaid.value}&balancePrincipal=${balancePrincipal.value}&remarks=${encodeURIComponent(remarks.value)}`)
+    .then(()=>{ loadData(); showTab('history',document.querySelectorAll('.tabs button')[2]); });
+}
+
+/* DELETE */
+function deleteEntry(id){
+  if(confirm("Delete this record?"))
+    fetch(`${URL}?action=delete&recordId=${id}`).then(loadData);
+}
 
 loadData();
 </script>
