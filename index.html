@@ -1,64 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Loan Management App</title>
+<title>Loan Management</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { font-family: Arial; background:#f4f6f8; padding:10px; }
-h2 { text-align:center; }
-
-.tabs { text-align:center; margin-bottom:15px; }
-.tabs button {
-  padding:10px 12px;
-  margin:0 3px;
-  border:none;
-  cursor:pointer;
-  background:#ccc;
-  border-radius:4px;
-  font-weight:bold;
-  font-size:14px;
-}
-.tabs button.active { background:#007bff; color:#fff; }
-
-.card {
-  max-width:1000px;
-  margin:0 auto 15px;
-  background:#fff;
-  padding:15px;
-  border-radius:6px;
-  box-shadow:0 0 8px rgba(0,0,0,0.1);
-  display:none;
-}
-
-label { display:block; margin-top:10px; font-weight:bold; }
-input, select { width:100%; padding:8px; margin-top:5px; box-sizing:border-box; }
-
-button.save {
-  margin-top:15px;
-  width:100%;
-  padding:12px;
-  font-size:16px;
-  background:#28a745;
-  color:white;
-  border:none;
-  border-radius:4px;
-}
-
-table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
-th,td { border:1px solid #ddd; padding:6px; text-align:center; }
-th { background:#007bff; color:white; }
-.red { background:#f8d7da; }
-.green { background:#d4edda; }
-
-#msg { margin-top:10px; font-weight:bold; text-align:center; }
-
-/* Mobile adjustments */
-@media(max-width:600px){
-  table, th, td { font-size:12px; padding:4px; }
-  .tabs button { font-size:12px; padding:8px 6px; }
-}
+body{font-family:Arial;background:#f4f6f8;padding:10px}
+h2{text-align:center}
+.tabs{text-align:center;margin-bottom:15px}
+.tabs button{padding:10px;border:none;margin:3px;font-weight:bold}
+.tabs button.active{background:#007bff;color:white}
+.card{background:white;padding:15px;max-width:1000px;margin:auto;display:none}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ddd;padding:6px;text-align:center}
+th{background:#007bff;color:white}
+.action{cursor:pointer;font-size:18px}
+.green{background:#d4edda}
+.red{background:#f8d7da}
 </style>
 </head>
 
@@ -67,114 +26,119 @@ th { background:#007bff; color:white; }
 <h2>Loan Management App</h2>
 
 <div class="tabs">
-  <button class="active" onclick="showTab('entry',event)">Add Entry</button>
-  <button onclick="showTab('history',event)">History</button>
-  <button onclick="showTab('pending',event)">Interest Pending</button>
+  <button class="active" onclick="showTab('home',event)">🏠 Home</button>
+  <button onclick="showTab('entry',event)">➕ Add</button>
+  <button onclick="showTab('history',event)">📜 History</button>
 </div>
 
-<!-- ADD ENTRY -->
+<!-- HOME -->
+<div id="home" class="card">
+  <h3>Dashboard</h3>
+  <label>Select Month</label>
+  <input type="month" id="monthFilter" onchange="buildHome()">
+
+  <p><b>Total Outstanding:</b> ₹ <span id="outstanding">0</span></p>
+  <p><b>Interest Received:</b> ₹ <span id="interestMonth">0</span></p>
+</div>
+
+<!-- ENTRY -->
 <div id="entry" class="card">
-  <h3>Add Payment</h3>
+  <h3>Add / Edit Entry</h3>
 
-  <label>Customer Name</label>
-  <input id="customerName">
+  <input id="customerName" placeholder="Customer Name">
+  <input id="loanAmount" type="number" placeholder="Loan Amount">
+  <input id="interestRate" type="number" placeholder="Interest Rate">
+  <input id="date" type="date">
+  <input id="principalPaid" type="number" value="0">
+  <input id="interestPaid" type="number" value="0">
+  <input id="balancePrincipal" type="number">
+  <input id="remarks" placeholder="Remarks">
 
-  <label>Loan Amount</label>
-  <input type="number" id="loanAmount">
-
-  <label>Interest Rate (%)</label>
-  <input type="number" id="interestRate">
-
-  <label>Date</label>
-  <input type="date" id="date">
-
-  <label>Principal Paid</label>
-  <input type="number" id="principalPaid" value="0">
-
-  <label>Interest Paid</label>
-  <input type="number" id="interestPaid" value="0">
-
-  <label>Balance Principal</label>
-  <input type="number" id="balancePrincipal">
-
-  <label>Remarks</label>
-  <input id="remarks">
-
-  <button class="save" onclick="saveEntry()">Save</button>
-  <div id="msg"></div>
+  <button onclick="save()">Save</button>
 </div>
 
 <!-- HISTORY -->
 <div id="history" class="card">
   <h3>History</h3>
-
-  <!-- Filters -->
-  <label>Filter by Customer</label>
-  <input id="filterCustomer" placeholder="Enter customer name" oninput="buildHistory()">
-
-  <label>Filter by Date Range</label>
-  <input type="date" id="filterStart" onchange="buildHistory()"> to 
-  <input type="date" id="filterEnd" onchange="buildHistory()">
-
   <table>
     <thead>
       <tr>
         <th>S.No</th>
         <th>Customer</th>
         <th>Date</th>
-        <th>Remarks</th>
-        <th>Interest Paid</th>
-        <th>Principal Paid</th>
+        <th>Interest</th>
+        <th>Principal</th>
         <th>Balance</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="historyBody"></tbody>
   </table>
 </div>
 
-<!-- PENDING -->
-<div id="pending" class="card">
-  <h3>Interest Pending</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>S.No</th>
-        <th>Customer</th>
-        <th>Pending Months</th>
-        <th>Total Pending Interest</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="pendingBody"></tbody>
-  </table>
-</div>
-
 <script>
-const URL = "https://script.google.com/macros/s/AKfycbyz_toAxpz3UP6CX9NSfm4h8uR0huRUvVxPwnSI77PREaDfBUdOFUfVtL6lZS8uGSGf/exec";
-let data = [];
+const URL = "https://script.google.com/macros/s/AKfycby8Awxah36wP12dwZeSLhW5QTTuYjMqAdfjyUllKIV7aRWyCZ42i8Yj000iTFCVF6Tl/exec";
+let data=[], editId=null;
 
-/* ---------- Tabs ---------- */
 function showTab(id,e){
-  ["entry","history","pending"].forEach(x=>{
-    document.getElementById(x).style.display = x===id?"block":"none";
-  });
+  ["home","entry","history"].forEach(x=>document.getElementById(x).style.display="none");
+  document.getElementById(id).style.display="block";
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
   e.target.classList.add("active");
-  if(id==="pending") buildPending();
+  if(id==="home") buildHome();
 }
 
-/* ---------- Load data ---------- */
-fetch(URL)
-  .then(r=>r.json())
-  .then(d=>{
-    data=d.slice(1); // remove header row
-    buildHistory();
-    document.getElementById("entry").style.display="block";
-  });
+fetch(URL).then(r=>r.json()).then(d=>{
+  data=d.slice(1);
+  buildHistory();
+  buildHome();
+  document.getElementById("home").style.display="block";
+});
 
-/* ---------- Save ---------- */
-function saveEntry(){
+function buildHistory(){
+  const tb=document.getElementById("historyBody");
+  tb.innerHTML="";
+  data.forEach((r,i)=>{
+    tb.innerHTML+=`
+    <tr>
+      <td>${i+1}</td>
+      <td>${r[0]}</td>
+      <td>${r[3].substring(0,10)}</td>
+      <td>${r[5]}</td>
+      <td>${r[4]}</td>
+      <td>${r[6]}</td>
+      <td>
+        <span class="action" onclick="edit('${r[8]}')">✏️</span>
+        <span class="action" onclick="del('${r[8]}')">🗑️</span>
+      </td>
+    </tr>`;
+  });
+}
+
+function edit(id){
+  if(!confirm("Do you want to edit?")) return;
+  const r=data.find(x=>x[8]==id);
+  editId=id;
+  customerName.value=r[0];
+  loanAmount.value=r[1];
+  interestRate.value=r[2];
+  date.value=r[3].substring(0,10);
+  principalPaid.value=r[4];
+  interestPaid.value=r[5];
+  balancePrincipal.value=r[6];
+  remarks.value=r[7];
+  showTab('entry',{target:document.querySelectorAll('.tabs button')[1]});
+}
+
+function del(id){
+  if(!confirm("Do you want to delete?")) return;
+  fetch(URL+"?action=delete&id="+id).then(()=>location.reload());
+}
+
+function save(){
   const p=new URLSearchParams({
+    action:editId?"update":"create",
+    id:editId||Date.now(),
     customerName:customerName.value,
     loanAmount:loanAmount.value,
     interestRate:interestRate.value,
@@ -184,95 +148,18 @@ function saveEntry(){
     balancePrincipal:balancePrincipal.value,
     remarks:remarks.value
   });
-
-  document.getElementById("msg").innerText="Saving...";
-  fetch(URL+"?"+p.toString())
-    .then(r=>r.text())
-    .then(txt=>{
-      document.getElementById("msg").innerText="Saved!";
-      setTimeout(()=>location.reload(),1000);
-    })
-    .catch(e=>{
-      document.getElementById("msg").innerText="Error saving";
-    });
+  fetch(URL+"?"+p).then(()=>location.reload());
 }
 
-/* ---------- Format date only YYYY-MM-DD ---------- */
-function formatDate(dateStr){
-  const d=new Date(dateStr);
-  const yyyy=d.getFullYear();
-  let mm=d.getMonth()+1;
-  let dd=d.getDate();
-  if(mm<10) mm='0'+mm;
-  if(dd<10) dd='0'+dd;
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-/* ---------- History Table Descending by Date + Filters ---------- */
-function buildHistory(){
-  const tbody=document.getElementById("historyBody");
-  tbody.innerHTML="";
-  const custFilter = document.getElementById("filterCustomer").value.toLowerCase();
-  const startDate = document.getElementById("filterStart").value;
-  const endDate = document.getElementById("filterEnd").value;
-
-  const sorted = data.slice().sort((a,b)=> new Date(b[3]) - new Date(a[3]));
-
-  let index = 1;
-  sorted.forEach(r=>{
-    let custMatch = r[0].toLowerCase().includes(custFilter);
-    let dateMatch = true;
-    if(startDate && new Date(r[3])<new Date(startDate)) dateMatch=false;
-    if(endDate && new Date(r[3])>new Date(endDate)) dateMatch=false;
-
-    if(custMatch && dateMatch){
-      tbody.innerHTML+=`
-        <tr>
-          <td>${index}</td>
-          <td>${r[0]}</td>
-          <td>${formatDate(r[3])}</td>
-          <td>${r[7]||""}</td>
-          <td>${r[5]}</td>
-          <td>${r[4]}</td>
-          <td>${r[6]}</td>
-        </tr>`;
-      index++;
-    }
-  });
-}
-
-/* ---------- Pending Table ---------- */
-function buildPending(){
-  const map={};
+function buildHome(){
+  let total=0, interest=0;
+  const m=document.getElementById("monthFilter").value;
   data.forEach(r=>{
-    if(!map[r[0]]) map[r[0]]={months:0,total:0};
-    if(Number(r[5])===0){
-      map[r[0]].months++;
-      map[r[0]].total += Number(r[1])*Number(r[2])/100;
-    }
+    total+=Number(r[6]);
+    if(m && r[3].startsWith(m)) interest+=Number(r[5]);
   });
-
-  const tbody=document.getElementById("pendingBody");
-  tbody.innerHTML="";
-  let any=false;
-  let sno=1;
-  Object.keys(map).forEach(c=>{
-    if(map[c].months>0){
-      any=true;
-      tbody.innerHTML+=`
-        <tr class="red">
-          <td>${sno}</td>
-          <td>${c}</td>
-          <td>${map[c].months}</td>
-          <td>${map[c].total.toFixed(2)}</td>
-          <td>Pending</td>
-        </tr>`;
-      sno++;
-    }
-  });
-  if(!any){
-    tbody.innerHTML=`<tr class="green"><td colspan="5">All customers paid ✔</td></tr>`;
-  }
+  outstanding.innerText=total;
+  interestMonth.innerText=interest;
 }
 </script>
 
