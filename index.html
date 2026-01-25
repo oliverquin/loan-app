@@ -1,156 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Loan Manager</title>
+<meta charset="UTF-8">
+<title>Loan Management App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
-  background: #f2f4f7;
-  font-family: system-ui, sans-serif;
+body { font-family: Arial; background:#f4f6f8; padding:10px; }
+h2 { text-align:center; }
+.tabs { text-align:center; margin-bottom:15px; }
+.tabs button { padding:10px 12px; margin:0 3px; border:none; cursor:pointer; background:#ccc; border-radius:4px; font-weight:bold; font-size:14px; }
+.tabs button.active { background:#007bff; color:#fff; }
+.card { max-width:1000px; margin:0 auto 15px; background:#fff; padding:15px; border-radius:6px; box-shadow:0 0 8px rgba(0,0,0,0.1); display:none; }
+label { display:block; margin-top:10px; font-weight:bold; }
+input, select { width:100%; padding:8px; margin-top:5px; box-sizing:border-box; }
+button.save { margin-top:15px; width:100%; padding:12px; font-size:16px; background:#28a745; color:white; border:none; border-radius:4px; }
+table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+th,td { border:1px solid #ddd; padding:6px; text-align:center; }
+th { background:#007bff; color:white; }
+.red { background:#f8d7da; }
+.green { background:#d4edda; }
+.edit-delete { cursor:pointer; margin-left:8px; font-weight:bold; color:#007bff; }
+#msg { margin-top:10px; font-weight:bold; text-align:center; }
+
+/* Mobile adjustments */
+@media(max-width:600px){
+  table, th, td { font-size:12px; padding:4px; }
+  .tabs button { font-size:12px; padding:8px 6px; }
 }
-.card {
-  background: #fff;
-  margin: 10px;
-  padding: 15px;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.08);
-}
-h2 { margin: 0 0 10px }
-input, button {
-  width: 100%;
-  padding: 10px;
-  margin: 6px 0;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-button {
-  background: #2563eb;
-  color: #fff;
-  font-size: 16px;
-  border: none;
-}
-.stat {
-  font-size: 22px;
-  font-weight: bold;
-}
-.row {
-  border-bottom: 1px solid #eee;
-  padding: 8px 0;
-}
-.small { color:#666; font-size:12px }
 </style>
 </head>
-
 <body>
 
-<!-- DASHBOARD -->
-<div class="card">
-  <h2>Dashboard</h2>
-  <div>Total Outstanding</div>
-  <div class="stat" id="outstanding">₹0</div>
+<h2>Loan Management App</h2>
 
-  <div style="margin-top:10px">Interest Received</div>
-  <div class="stat" id="interest">₹0</div>
-
-  <input type="month" id="month" onchange="render()">
+<div class="tabs">
+  <button class="active" onclick="showTab('entry',event)">Add Entry</button>
+  <button onclick="showTab('history',event)">History</button>
+  <button onclick="showTab('pending',event)">Interest Pending</button>
 </div>
 
 <!-- ADD ENTRY -->
-<div class="card">
-  <h2>Add Entry</h2>
-  <input id="name" placeholder="Customer Name">
-  <input id="loan" type="number" placeholder="Loan Amount">
-  <input id="rate" type="number" placeholder="Interest Rate (%)">
-  <input id="date" type="date">
-  <input id="principal" type="number" placeholder="Principal Paid">
-  <input id="interestPaid" type="number" placeholder="Interest Paid">
-  <input id="remarks" placeholder="Remarks">
-  <button onclick="save()">Save</button>
+<div id="entry" class="card">
+  <h3>Add Payment</h3>
+
+  <label>Customer Name</label>
+  <input id="customerName">
+
+  <label>Loan Amount</label>
+  <input type="number" id="loanAmount">
+
+  <label>Interest Rate (%)</label>
+  <input type="number" id="interestRate">
+
+  <label>Date</label>
+  <input type="date" id="date">
+
+  <label>Principal Paid</label>
+  <input type="number" id="principalPaid" value="0">
+
+  <label>Interest Paid</label>
+  <input type="number" id="interestPaid" value="0">
+
+  <label>Balance Principal</label>
+  <input type="number" id="balancePrincipal">
+
+  <label>Remarks</label>
+  <input id="remarks">
+
+  <button class="save" onclick="saveEntry()">Save</button>
+  <div id="msg"></div>
 </div>
 
 <!-- HISTORY -->
-<div class="card">
-  <h2>History</h2>
-  <input placeholder="Search customer" onkeyup="filterName=this.value; render()">
-  <div id="history"></div>
+<div id="history" class="card">
+  <h3>History</h3>
+  <label>Filter by Customer</label>
+  <input id="filterCustomer" placeholder="Enter customer name" oninput="buildHistory()">
+  <label>Filter by Date Range</label>
+  <input type="date" id="filterStart" onchange="buildHistory()"> to 
+  <input type="date" id="filterEnd" onchange="buildHistory()">
+
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Customer</th>
+        <th>Date</th>
+        <th>Remarks</th>
+        <th>Interest Paid</th>
+        <th>Principal Paid</th>
+        <th>Balance</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+</div>
+
+<!-- PENDING -->
+<div id="pending" class="card">
+  <h3>Interest Pending</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Customer</th>
+        <th>Pending Months</th>
+        <th>Total Pending Interest</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="pendingBody"></tbody>
+  </table>
 </div>
 
 <script>
+const URL = "https://script.google.com/macros/s/AKfycbxOwX6F93BJNxDxGerMGGOPLJ6tR3jurFadRvngwPe1Uwgo9mYLU5USDF6fBFeWaX43/exec"; // replace with deployed Apps Script URL
 let data = [];
-let filterName = "";
 
-function load() {
-  google.script.run.withSuccessHandler(d => {
-    data = d;
-    render();
-  }).getAllData();
+/* Tabs */
+function showTab(id,e){
+  ["entry","history","pending"].forEach(x=>{
+    document.getElementById(x).style.display = x===id?"block":"none";
+  });
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active");
+  if(id==="pending") buildPending();
 }
 
-function render() {
-  let latestBalance = {};
-  let interestSum = 0;
-  let month = document.getElementById("month").value;
+/* Load data */
+fetch(URL)
+  .then(r=>r.json())
+  .then(d=>{
+    data=d.slice(1);
+    buildHistory();
+    document.getElementById("entry").style.display="block";
+  });
 
-  data.forEach(r => {
-    latestBalance[r[0]] = r[6];
-    if (!month || r[3].startsWith(month)) {
-      interestSum += Number(r[5]);
+/* Save entry */
+function saveEntry(){
+  const p=new URLSearchParams({
+    customerName:customerName.value,
+    loanAmount:loanAmount.value,
+    interestRate:interestRate.value,
+    date:date.value,
+    principalPaid:principalPaid.value,
+    interestAmount:interestPaid.value,
+    balancePrincipal:balancePrincipal.value,
+    remarks:remarks.value
+  });
+
+  document.getElementById("msg").innerText="Saving...";
+  fetch(URL+"?"+p.toString())
+    .then(r=>r.text())
+    .then(txt=>{
+      document.getElementById("msg").innerText="Saved!";
+      setTimeout(()=>location.reload(),1000);
+    })
+    .catch(e=>{
+      document.getElementById("msg").innerText="Error saving";
+    });
+}
+
+/* Format date YYYY-MM-DD */
+function formatDate(dateStr){
+  const d=new Date(dateStr);
+  const yyyy=d.getFullYear();
+  let mm=d.getMonth()+1;
+  let dd=d.getDate();
+  if(mm<10) mm='0'+mm; if(dd<10) dd='0'+dd;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/* History Table + Filters */
+function buildHistory(){
+  const tbody=document.getElementById("historyBody");
+  tbody.innerHTML="";
+  const custFilter = document.getElementById("filterCustomer").value.toLowerCase();
+  const sorted = data.slice().sort((a,b)=> new Date(b[3]) - new Date(a[3]));
+  let index = 1;
+  sorted.forEach(r=>{
+    if(!r[0].toLowerCase().includes(custFilter)) return;
+    tbody.innerHTML+=`
+      <tr>
+        <td>${index}</td>
+        <td>${r[0]}</td>
+        <td>${formatDate(r[3])}</td>
+        <td>${r[7]||""}</td>
+        <td>${r[5]}</td>
+        <td>${r[4]}</td>
+        <td>${r[6]}</td>
+        <td>
+          <span class="edit-delete" onclick="alert('Edit not implemented in this demo')">Edit</span> |
+          <span class="edit-delete" onclick="alert('Delete not implemented in this demo')">Delete</span>
+        </td>
+      </tr>`;
+    index++;
+  });
+}
+
+/* Pending Table */
+function buildPending(){
+  const map={};
+  data.forEach(r=>{
+    if(!map[r[0]]) map[r[0]]={months:0,total:0};
+    if(Number(r[5])===0){
+      map[r[0]].months++;
+      map[r[0]].total += Number(r[1])*Number(r[2])/100;
     }
   });
-
-  document.getElementById("outstanding").innerText =
-    "₹" + Object.values(latestBalance).reduce((a,b)=>a+b,0);
-
-  document.getElementById("interest").innerText = "₹" + interestSum;
-
-  let html = "";
-  data.slice().reverse().forEach(r => {
-    if (!r[0].toLowerCase().includes(filterName.toLowerCase())) return;
-    html += `
-      <div class="row">
-        <b>${r[0]}</b>
-        <div class="small">${r[3]}</div>
-        <div>Interest: ₹${r[5]}</div>
-        <div>Balance: ₹${r[6]}</div>
-        <div class="small">${r[7]||""}</div>
-      </div>`;
+  const tbody=document.getElementById("pendingBody");
+  tbody.innerHTML="";
+  let any=false, sno=1;
+  Object.keys(map).forEach(c=>{
+    if(map[c].months>0){
+      any=true;
+      tbody.innerHTML+=`
+        <tr class="red">
+          <td>${sno}</td>
+          <td>${c}</td>
+          <td>${map[c].months}</td>
+          <td>${map[c].total.toFixed(2)}</td>
+          <td>Pending</td>
+        </tr>`;
+      sno++;
+    }
   });
-
-  document.getElementById("history").innerHTML = html;
+  if(!any) tbody.innerHTML=`<tr class="green"><td colspan="5">All customers paid ✔</td></tr>`;
 }
-
-function save() {
-  const loan = Number(loanEl.value);
-  const principal = Number(principalEl.value || 0);
-  const balance = loan - principal;
-
-  google.script.run.withSuccessHandler(() => {
-    alert("Saved");
-    load();
-  }).saveEntry({
-    name: name.value,
-    loan: loan,
-    rate: rate.value,
-    date: date.value,
-    principal: principal,
-    interest: interestPaid.value,
-    balance: balance,
-    remarks: remarks.value
-  });
-}
-
-const name = document.getElementById("name");
-const loanEl = document.getElementById("loan");
-const rate = document.getElementById("rate");
-const date = document.getElementById("date");
-const principalEl = document.getElementById("principal");
-const interestPaid = document.getElementById("interestPaid");
-const remarks = document.getElementById("remarks");
-
-load();
 </script>
-
 </body>
 </html>
