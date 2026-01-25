@@ -1,166 +1,155 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Loan Management</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loan Manager</title>
 
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:10px}
-h2{text-align:center}
-.tabs{text-align:center;margin-bottom:15px}
-.tabs button{padding:10px;border:none;margin:3px;font-weight:bold}
-.tabs button.active{background:#007bff;color:white}
-.card{background:white;padding:15px;max-width:1000px;margin:auto;display:none}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #ddd;padding:6px;text-align:center}
-th{background:#007bff;color:white}
-.action{cursor:pointer;font-size:18px}
-.green{background:#d4edda}
-.red{background:#f8d7da}
+body {
+  margin: 0;
+  background: #f2f4f7;
+  font-family: system-ui, sans-serif;
+}
+.card {
+  background: #fff;
+  margin: 10px;
+  padding: 15px;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+h2 { margin: 0 0 10px }
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+button {
+  background: #2563eb;
+  color: #fff;
+  font-size: 16px;
+  border: none;
+}
+.stat {
+  font-size: 22px;
+  font-weight: bold;
+}
+.row {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0;
+}
+.small { color:#666; font-size:12px }
 </style>
 </head>
 
 <body>
 
-<h2>Loan Management App</h2>
+<!-- DASHBOARD -->
+<div class="card">
+  <h2>Dashboard</h2>
+  <div>Total Outstanding</div>
+  <div class="stat" id="outstanding">₹0</div>
 
-<div class="tabs">
-  <button class="active" onclick="showTab('home',event)">🏠 Home</button>
-  <button onclick="showTab('entry',event)">➕ Add</button>
-  <button onclick="showTab('history',event)">📜 History</button>
+  <div style="margin-top:10px">Interest Received</div>
+  <div class="stat" id="interest">₹0</div>
+
+  <input type="month" id="month" onchange="render()">
 </div>
 
-<!-- HOME -->
-<div id="home" class="card">
-  <h3>Dashboard</h3>
-  <label>Select Month</label>
-  <input type="month" id="monthFilter" onchange="buildHome()">
-
-  <p><b>Total Outstanding:</b> ₹ <span id="outstanding">0</span></p>
-  <p><b>Interest Received:</b> ₹ <span id="interestMonth">0</span></p>
-</div>
-
-<!-- ENTRY -->
-<div id="entry" class="card">
-  <h3>Add / Edit Entry</h3>
-
-  <input id="customerName" placeholder="Customer Name">
-  <input id="loanAmount" type="number" placeholder="Loan Amount">
-  <input id="interestRate" type="number" placeholder="Interest Rate">
+<!-- ADD ENTRY -->
+<div class="card">
+  <h2>Add Entry</h2>
+  <input id="name" placeholder="Customer Name">
+  <input id="loan" type="number" placeholder="Loan Amount">
+  <input id="rate" type="number" placeholder="Interest Rate (%)">
   <input id="date" type="date">
-  <input id="principalPaid" type="number" value="0">
-  <input id="interestPaid" type="number" value="0">
-  <input id="balancePrincipal" type="number">
+  <input id="principal" type="number" placeholder="Principal Paid">
+  <input id="interestPaid" type="number" placeholder="Interest Paid">
   <input id="remarks" placeholder="Remarks">
-
   <button onclick="save()">Save</button>
 </div>
 
 <!-- HISTORY -->
-<div id="history" class="card">
-  <h3>History</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>S.No</th>
-        <th>Customer</th>
-        <th>Date</th>
-        <th>Interest</th>
-        <th>Principal</th>
-        <th>Balance</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="historyBody"></tbody>
-  </table>
+<div class="card">
+  <h2>History</h2>
+  <input placeholder="Search customer" onkeyup="filterName=this.value; render()">
+  <div id="history"></div>
 </div>
 
 <script>
-const URL = "https://script.google.com/macros/s/AKfycby8Awxah36wP12dwZeSLhW5QTTuYjMqAdfjyUllKIV7aRWyCZ42i8Yj000iTFCVF6Tl/exec";
-let data=[], editId=null;
+let data = [];
+let filterName = "";
 
-function showTab(id,e){
-  ["home","entry","history"].forEach(x=>document.getElementById(x).style.display="none");
-  document.getElementById(id).style.display="block";
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  e.target.classList.add("active");
-  if(id==="home") buildHome();
+function load() {
+  google.script.run.withSuccessHandler(d => {
+    data = d;
+    render();
+  }).getAllData();
 }
 
-fetch(URL).then(r=>r.json()).then(d=>{
-  data=d.slice(1);
-  buildHistory();
-  buildHome();
-  document.getElementById("home").style.display="block";
-});
+function render() {
+  let latestBalance = {};
+  let interestSum = 0;
+  let month = document.getElementById("month").value;
 
-function buildHistory(){
-  const tb=document.getElementById("historyBody");
-  tb.innerHTML="";
-  data.forEach((r,i)=>{
-    tb.innerHTML+=`
-    <tr>
-      <td>${i+1}</td>
-      <td>${r[0]}</td>
-      <td>${r[3].substring(0,10)}</td>
-      <td>${r[5]}</td>
-      <td>${r[4]}</td>
-      <td>${r[6]}</td>
-      <td>
-        <span class="action" onclick="edit('${r[8]}')">✏️</span>
-        <span class="action" onclick="del('${r[8]}')">🗑️</span>
-      </td>
-    </tr>`;
+  data.forEach(r => {
+    latestBalance[r[0]] = r[6];
+    if (!month || r[3].startsWith(month)) {
+      interestSum += Number(r[5]);
+    }
+  });
+
+  document.getElementById("outstanding").innerText =
+    "₹" + Object.values(latestBalance).reduce((a,b)=>a+b,0);
+
+  document.getElementById("interest").innerText = "₹" + interestSum;
+
+  let html = "";
+  data.slice().reverse().forEach(r => {
+    if (!r[0].toLowerCase().includes(filterName.toLowerCase())) return;
+    html += `
+      <div class="row">
+        <b>${r[0]}</b>
+        <div class="small">${r[3]}</div>
+        <div>Interest: ₹${r[5]}</div>
+        <div>Balance: ₹${r[6]}</div>
+        <div class="small">${r[7]||""}</div>
+      </div>`;
+  });
+
+  document.getElementById("history").innerHTML = html;
+}
+
+function save() {
+  const loan = Number(loanEl.value);
+  const principal = Number(principalEl.value || 0);
+  const balance = loan - principal;
+
+  google.script.run.withSuccessHandler(() => {
+    alert("Saved");
+    load();
+  }).saveEntry({
+    name: name.value,
+    loan: loan,
+    rate: rate.value,
+    date: date.value,
+    principal: principal,
+    interest: interestPaid.value,
+    balance: balance,
+    remarks: remarks.value
   });
 }
 
-function edit(id){
-  if(!confirm("Do you want to edit?")) return;
-  const r=data.find(x=>x[8]==id);
-  editId=id;
-  customerName.value=r[0];
-  loanAmount.value=r[1];
-  interestRate.value=r[2];
-  date.value=r[3].substring(0,10);
-  principalPaid.value=r[4];
-  interestPaid.value=r[5];
-  balancePrincipal.value=r[6];
-  remarks.value=r[7];
-  showTab('entry',{target:document.querySelectorAll('.tabs button')[1]});
-}
+const name = document.getElementById("name");
+const loanEl = document.getElementById("loan");
+const rate = document.getElementById("rate");
+const date = document.getElementById("date");
+const principalEl = document.getElementById("principal");
+const interestPaid = document.getElementById("interestPaid");
+const remarks = document.getElementById("remarks");
 
-function del(id){
-  if(!confirm("Do you want to delete?")) return;
-  fetch(URL+"?action=delete&id="+id).then(()=>location.reload());
-}
-
-function save(){
-  const p=new URLSearchParams({
-    action:editId?"update":"create",
-    id:editId||Date.now(),
-    customerName:customerName.value,
-    loanAmount:loanAmount.value,
-    interestRate:interestRate.value,
-    date:date.value,
-    principalPaid:principalPaid.value,
-    interestAmount:interestPaid.value,
-    balancePrincipal:balancePrincipal.value,
-    remarks:remarks.value
-  });
-  fetch(URL+"?"+p).then(()=>location.reload());
-}
-
-function buildHome(){
-  let total=0, interest=0;
-  const m=document.getElementById("monthFilter").value;
-  data.forEach(r=>{
-    total+=Number(r[6]);
-    if(m && r[3].startsWith(m)) interest+=Number(r[5]);
-  });
-  outstanding.innerText=total;
-  interestMonth.innerText=interest;
-}
+load();
 </script>
 
 </body>
