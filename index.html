@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Loan Management App</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body { font-family: Arial,sans-serif; background:#f4f6f8; padding:10px; }
 h2 { text-align:center; }
@@ -75,6 +74,7 @@ th { background:#2563eb; color:white; }
 </div>
 
 <script>
+const URL = "https://script.google.com/macros/s/AKfycbwDzkTjvwpQOFD5fycqCHXDYVgrSP9inInRGTHbn3W1jPyRzUG32eM9Ibt18VewVp9V/exec"; // <-- replace with your Apps Script web app URL
 let data = [], editingRecordId = null, editingCustomerId = null;
 
 function showTab(id,el){
@@ -85,17 +85,17 @@ function showTab(id,el){
 }
 
 function loadData(){
-  google.script.run.withSuccessHandler(d=>{
-    data = d;
-    renderHistory();
-    document.getElementById('entry').style.display='block';
-    document.querySelectorAll('.tabs button')[1].classList.add('active');
-  }).getAllData();
+  fetch(URL)
+    .then(res=>res.json())
+    .then(d=>{
+      data = d.slice(1); // remove header
+      renderHistory();
+      showTab('entry',document.querySelectorAll('.tabs button')[1]);
+    });
 }
 
 function buildDashboard(){
-  let totalLoan = 0;
-  let interestReceived = 0;
+  let totalLoan = 0, interestReceived = 0;
   const lastBalances = {};
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -104,12 +104,10 @@ function buildDashboard(){
   data.forEach(r=>{
     const cust = r[8]; // customerId
     const date = new Date(r[3]);
-    // last balance per customer
     if(!lastBalances[cust] || new Date(lastBalances[cust].date)<date){
-      lastBalances[cust] = {balance:Number(r[6]), date: r[3]};
+      lastBalances[cust] = {balance:Number(r[6]), date:r[3]};
     }
-    // interest received this month
-    if(date.getMonth() === currentMonth && date.getFullYear() === currentYear){
+    if(date.getMonth()===currentMonth && date.getFullYear()===currentYear){
       interestReceived += Number(r[5]);
     }
   });
@@ -155,22 +153,17 @@ function saveEntry(){
     recordId: editingRecordId
   };
 
-  if(editingRecordId){
-    if(!confirm("Do you want to save changes?")) return;
-    google.script.run.withSuccessHandler(()=>{
-      editingRecordId = null;
-      editingCustomerId = null;
+  const action = editingRecordId ? "edit" : "save";
+  if(editingRecordId && !confirm("Do you want to save changes?")) return;
+
+  fetch(`${URL}?action=${action}&customerName=${encodeURIComponent(obj.customerName)}&loanAmount=${obj.loanAmount}&interestRate=${obj.interestRate}&date=${obj.date}&principalPaid=${obj.principalPaid}&interestPaid=${obj.interestPaid}&balancePrincipal=${obj.balancePrincipal}&remarks=${encodeURIComponent(obj.remarks)}&customerId=${obj.customerId||''}&recordId=${obj.recordId||''}`)
+    .then(res=>res.text())
+    .then(txt=>{
       resetForm();
+      editingRecordId = null; editingCustomerId = null;
       loadData();
       showTab('history',document.querySelectorAll('.tabs button')[2]);
-    }).editEntry(obj);
-  } else {
-    google.script.run.withSuccessHandler(()=>{
-      resetForm();
-      loadData();
-      showTab('history',document.querySelectorAll('.tabs button')[2]);
-    }).saveEntry(obj);
-  }
+    });
 }
 
 function editEntry(recordId,customerId){
@@ -186,7 +179,9 @@ function editEntry(recordId,customerId){
 
 function deleteEntry(recordId){
   if(!confirm("Do you want to delete this record?")) return;
-  google.script.run.withSuccessHandler(()=> loadData()).deleteEntry(recordId);
+  fetch(`${URL}?action=delete&recordId=${recordId}`)
+    .then(res=>res.text())
+    .then(txt=>loadData());
 }
 
 function resetForm(){
@@ -206,6 +201,5 @@ const remarks = document.getElementById('remarks');
 
 loadData();
 </script>
-
 </body>
 </html>
